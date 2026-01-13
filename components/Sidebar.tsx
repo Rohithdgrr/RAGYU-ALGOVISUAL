@@ -1,8 +1,8 @@
-
 import React, { useState } from 'react';
 import { ALGORITHMS } from '../constants.ts';
 import { Algorithm, AlgorithmCategory, ViewState } from '../types.ts';
 import { LEETCODE_PROBLEMS, LeetCodeProblem } from '../leetcodeData.ts';
+import { ALGO_REGISTRY } from '../algorithms/registry.ts';
 
 interface SidebarProps {
   selectedAlgo: Algorithm;
@@ -14,6 +14,28 @@ interface SidebarProps {
   currentView: ViewState;
   setView: (view: ViewState) => void;
 }
+
+// Algorithms that are known to have issues or are not fully implemented
+const NON_WORKING_ALGORITHMS = new Set([
+  'bridges-graph', // Duplicate key in registry
+  'hamiltonian-cycle', // Complex, may have issues
+  'graph-coloring', // Complex, may have issues
+  'eulerian-path', // Complex, may have issues
+  'johnson', // Complex, may have issues
+  'kosaraju', // May have issues
+  'tarjan', // May have issues
+  'articulation-points', // Complex, may have issues
+  'boruvka-mst', // Less common, may have issues
+  'connected-components', // May have issues
+  'shortest-path-bfs', // May have issues
+  'bipartite-check', // May have issues
+  'detect-cycle-graph', // May have issues
+  'union-find', // May have issues
+]);
+
+const NON_WORKING_LEETCODE_PROBLEMS = new Set([
+  // Add LeetCode problem IDs that are known to have issues or are not fully implemented
+]);
 
 export const Sidebar: React.FC<SidebarProps> = ({
   selectedAlgo,
@@ -245,26 +267,36 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       {category}
                     </h3>
                     <div className="space-y-1">
-                      {categoryAlgorithms.map(algo => (
-                        <button
-                          key={algo.id}
-                          onClick={() => handleSelectAlgo(algo)}
-                          className={`w-full text-left px-2.5 sm:px-3 py-2 sm:py-2.5 rounded-lg sm:rounded-xl text-[11px] sm:text-sm font-bold transition-all duration-200 flex items-center gap-2 sm:gap-3 group ${
-                            selectedAlgo.id === algo.id && currentView === 'visual' && !selectedLeetCodeProblem
-                              ? 'bg-gradient-to-r from-blue-50 to-blue-100 text-blue-700 border border-blue-200 shadow-md shadow-blue-100' 
-                              : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900 border border-transparent hover:shadow-sm'
-                          }`}
-                        >
-                          <div className={`w-6 h-6 sm:w-7 sm:h-7 rounded-lg flex items-center justify-center transition-all duration-200 shrink-0 ${
-                            selectedAlgo.id === algo.id && currentView === 'visual' && !selectedLeetCodeProblem
-                              ? 'bg-blue-500 text-white shadow-md' 
-                              : 'bg-gray-100 text-gray-500 group-hover:bg-gray-200 group-hover:text-gray-700'
-                          }`}>
-                            <i className={`fa-solid ${getIcon(algo.category)} text-[10px] sm:text-xs`}></i>
-                          </div>
-                          <span className="flex-1 truncate text-[11px] sm:text-sm">{algo.name}</span>
-                        </button>
-                      ))}
+                      {categoryAlgorithms.map(algo => {
+                        const isNonWorking = NON_WORKING_ALGORITHMS.has(algo.id);
+                        return (
+                          <button
+                            key={algo.id}
+                            onClick={() => handleSelectAlgo(algo)}
+                            className={`w-full text-left px-2.5 sm:px-3 py-2 sm:py-2.5 rounded-lg sm:rounded-xl text-[11px] sm:text-sm font-bold transition-all duration-200 flex items-center gap-2 sm:gap-3 group ${
+                              selectedAlgo.id === algo.id && currentView === 'visual' && !selectedLeetCodeProblem
+                                ? 'bg-gradient-to-r from-blue-50 to-blue-100 text-blue-700 border border-blue-200 shadow-md shadow-blue-100' 
+                                : isNonWorking
+                                  ? 'text-red-500 hover:bg-red-50 hover:text-red-700 border border-transparent hover:shadow-sm'
+                                  : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900 border border-transparent hover:shadow-sm'
+                            }`}
+                          >
+                            <div className={`w-6 h-6 sm:w-7 sm:h-7 rounded-lg flex items-center justify-center transition-all duration-200 shrink-0 ${
+                              selectedAlgo.id === algo.id && currentView === 'visual' && !selectedLeetCodeProblem
+                                ? 'bg-blue-500 text-white shadow-md' 
+                                : isNonWorking
+                                  ? 'bg-red-100 text-red-500 group-hover:bg-red-200 group-hover:text-red-700'
+                                  : 'bg-gray-100 text-gray-500 group-hover:bg-gray-200 group-hover:text-gray-700'
+                            }`}>
+                              <i className={`fa-solid ${getIcon(algo.category)} text-[10px] sm:text-xs`}></i>
+                            </div>
+                            <span className="flex-1 truncate text-[11px] sm:text-sm">{algo.name}</span>
+                            {isNonWorking && (
+                              <i className="fa-solid fa-triangle-exclamation text-red-500 text-[10px] sm:text-xs" title="This algorithm may have issues"></i>
+                            )}
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
                 );
@@ -293,33 +325,43 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </div>
             {filteredLeetCodeProblems.length > 0 ? (
               <div className="space-y-1">
-                {filteredLeetCodeProblems.map(problem => (
-                  <button
-                    key={problem.id}
-                    onClick={() => handleSelectLeetCodeProblem(problem)}
-                    className={`w-full text-left px-3 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 flex items-center gap-3 group ${
-                      selectedLeetCodeProblem?.id === problem.id && currentView === 'visual'
-                        ? 'bg-gradient-to-r from-orange-50 to-yellow-50 text-orange-700 border border-orange-200 shadow-md shadow-orange-100' 
-                        : 'text-gray-500 hover:bg-orange-50 hover:text-orange-600 border border-transparent hover:shadow-sm'
-                    }`}
-                  >
-                    <div className={`w-6 h-6 rounded-lg flex items-center justify-center transition-all duration-200 shrink-0 ${
-                      selectedLeetCodeProblem?.id === problem.id && currentView === 'visual'
-                        ? 'bg-orange-500 text-white shadow-md' 
-                        : 'bg-gray-100 text-gray-500 group-hover:bg-orange-100 group-hover:text-orange-600'
-                    }`}>
-                      <span className="text-[9px] font-black">{problem.number}</span>
-                    </div>
-                    <span className="truncate flex-1">{problem.title}</span>
-                    <span className={`px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wider shrink-0 transition-all duration-200 ${
-                      problem.difficulty === 'Easy' ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200' :
-                      problem.difficulty === 'Medium' ? 'bg-amber-100 text-amber-700 hover:bg-amber-200' :
-                      'bg-red-100 text-red-700 hover:bg-red-200'
-                    }`}>
-                      {problem.difficulty.substring(0, 1)}
-                    </span>
-                  </button>
-                ))}
+                {filteredLeetCodeProblems.map(problem => {
+                  const isNonWorking = NON_WORKING_LEETCODE_PROBLEMS.has(problem.id);
+                  return (
+                    <button
+                      key={problem.id}
+                      onClick={() => handleSelectLeetCodeProblem(problem)}
+                      className={`w-full text-left px-3 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 flex items-center gap-3 group ${
+                        selectedLeetCodeProblem?.id === problem.id && currentView === 'visual'
+                          ? 'bg-gradient-to-r from-orange-50 to-yellow-50 text-orange-700 border border-orange-200 shadow-md shadow-orange-100' 
+                          : isNonWorking
+                            ? 'text-red-500 hover:bg-red-50 hover:text-red-700 border border-transparent hover:shadow-sm'
+                            : 'text-gray-500 hover:bg-orange-50 hover:text-orange-600 border border-transparent hover:shadow-sm'
+                      }`}
+                    >
+                      <div className={`w-6 h-6 rounded-lg flex items-center justify-center transition-all duration-200 shrink-0 ${
+                        selectedLeetCodeProblem?.id === problem.id && currentView === 'visual'
+                          ? 'bg-orange-500 text-white shadow-md' 
+                          : isNonWorking
+                            ? 'bg-red-100 text-red-500 group-hover:bg-red-200 group-hover:text-red-700'
+                            : 'bg-gray-100 text-gray-500 group-hover:bg-orange-100 group-hover:text-orange-600'
+                      }`}>
+                        <span className="text-[9px] font-black">{problem.number}</span>
+                      </div>
+                      <span className="truncate flex-1">{problem.title}</span>
+                      <span className={`px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wider shrink-0 transition-all duration-200 ${
+                        problem.difficulty === 'Easy' ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200' :
+                        problem.difficulty === 'Medium' ? 'bg-amber-100 text-amber-700 hover:bg-amber-200' :
+                        'bg-red-100 text-red-700 hover:bg-red-200'
+                      }`}>
+                        {problem.difficulty.substring(0, 1)}
+                      </span>
+                      {isNonWorking && (
+                        <i className="fa-solid fa-triangle-exclamation text-red-500 text-[10px] sm:text-xs" title="This problem may have issues"></i>
+                      )}
+                    </button>
+                  );
+                })}
               </div>
             ) : (
               <div className="text-center py-8 px-4">

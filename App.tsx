@@ -61,7 +61,7 @@ const CodeBlock = ({ children, className }: { children: any; className?: string 
 
 const MarkdownRenderer = ({ content }: { content: string }) => {
   return (
-    <div className="prose prose-slate prose-sm max-w-none">
+    <div className="prose prose-slate prose-sm max-w-none prose-headings:font-black prose-headings:mb-4 prose-headings:mt-6 prose-p:leading-relaxed prose-p:mb-4 prose-p:text-slate-700 prose-strong:text-slate-900 prose-em:text-slate-600 prose-a:text-blue-600 prose-a:no-underline hover:prose-a:underline prose-blockquote:border-l-4 prose-blockquote:border-purple-500 prose-blockquote:bg-purple-50 prose-blockquote:py-2 prose-blockquote:px-4 prose-blockquote:my-4 prose-blockquote:italic prose-blockquote:text-slate-600 prose-ul:list-disc prose-ul:pl-6 prose-ul:my-4 prose-ul:space-y-2 prose-ol:list-decimal prose-ol:pl-6 prose-ol:my-4 prose-ol:space-y-2 prose-hr:border-slate-200 prose-hr:my-6 prose-table:border-collapse prose-table:w-full prose-table:my-4 prose-th:bg-gradient-to-r prose-th:from-blue-500 prose-th:to-indigo-600 prose-th:font-black prose-th:px-4 prose-th:py-2 prose-th:text-left prose-th:text-white prose-th:border prose-th:border-slate-200 prose-td:border prose-td:border-slate-200 prose-td:px-4 prose-td:py-2">
       <ReactMarkdown
         remarkPlugins={[remarkGfm as any]}
         components={{
@@ -69,12 +69,30 @@ const MarkdownRenderer = ({ content }: { content: string }) => {
             return !inline ? (
               <CodeBlock className={className}>{children}</CodeBlock>
             ) : (
-              <code className={className} {...props}>{children}</code>
+              <code className="bg-gradient-to-r from-pink-100 to-purple-100 text-pink-800 px-1.5 py-0.5 rounded text-xs font-mono border border-pink-200" {...props}>{children}</code>
             );
           },
-          li: ({ children }) => <li className="mb-2 leading-relaxed">{children}</li>,
-          h1: ({ children }) => <h1 className="text-xl font-black mb-4 mt-6 text-slate-900">{children}</h1>,
-          h2: ({ children }) => <h2 className="text-lg font-black mb-3 mt-5 text-slate-800">{children}</h2>,
+          li: ({ children }) => <li className="mb-1.5 leading-relaxed text-slate-700 marker:text-indigo-500">{children}</li>,
+          h1: ({ children }) => <h1 className="text-2xl font-black mb-4 mt-6 bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent border-b-2 border-gradient-to-r border-from-blue-500 border-to-indigo-500 pb-2">{children}</h1>,
+          h2: ({ children }) => <h2 className="text-xl font-black mb-3 mt-5 bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent border-b border-indigo-300 pb-2">{children}</h2>,
+          h3: ({ children }) => <h3 className="text-lg font-black mb-3 mt-4 bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">{children}</h3>,
+          h4: ({ children }) => <h4 className="text-base font-black mb-2 mt-3 bg-gradient-to-r from-pink-600 to-rose-600 bg-clip-text text-transparent">{children}</h4>,
+          h5: ({ children }) => <h5 className="text-sm font-black mb-2 mt-3 bg-gradient-to-r from-rose-600 to-orange-600 bg-clip-text text-transparent">{children}</h5>,
+          h6: ({ children }) => <h6 className="text-xs font-black mb-2 mt-3 bg-gradient-to-r from-orange-600 to-amber-600 bg-clip-text text-transparent">{children}</h6>,
+          p: ({ children }) => <p className="mb-3 leading-relaxed text-slate-700">{children}</p>,
+          strong: ({ children }) => <strong className="font-black bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">{children}</strong>,
+          em: ({ children }) => <em className="italic text-purple-600">{children}</em>,
+          a: ({ children, href }) => <a href={href} className="text-blue-600 hover:text-indigo-600 hover:underline font-medium transition-colors" target="_blank" rel="noopener noreferrer">{children}</a>,
+          blockquote: ({ children }) => <blockquote className="border-l-4 border-gradient-to-b border-from-purple-500 border-to-pink-500 bg-gradient-to-r from-purple-50 to-pink-50 py-3 px-4 my-4 italic text-purple-700 rounded-r-lg shadow-sm">{children}</blockquote>,
+          hr: () => <hr className="border-gradient-to-r border-from-transparent border-slate-300 border-to-transparent my-6" />,
+          ul: ({ children }) => <ul className="list-disc pl-6 my-4 space-y-1.5 text-slate-700 marker:text-indigo-500">{children}</ul>,
+          ol: ({ children }) => <ol className="list-decimal pl-6 my-4 space-y-1.5 text-slate-700 marker:text-purple-500">{children}</ol>,
+          table: ({ children }) => <div className="overflow-x-auto my-4 rounded-lg border border-indigo-200 shadow-lg shadow-indigo-100"><table className="border-collapse w-full">{children}</table></div>,
+          thead: ({ children }) => <thead className="bg-gradient-to-r from-blue-500 to-indigo-600">{children}</thead>,
+          tbody: ({ children }) => <tbody>{children}</tbody>,
+          tr: ({ children }) => <tr className="border-b border-indigo-100 hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 transition-colors">{children}</tr>,
+          th: ({ children }) => <th className="px-4 py-2 text-left font-black text-white border border-indigo-400">{children}</th>,
+          td: ({ children }) => <td className="px-4 py-2 text-slate-700 border border-indigo-100">{children}</td>,
         }}
       >
         {content}
@@ -476,6 +494,7 @@ export const App: React.FC = () => {
     setLoadingInsights(true);
     setAiError(null);
     setChatHistory([{ role: 'model', text: '' }]);
+    setView('complexity');
     try {
       const stream = await getAlgorithmDeepDive(selectedAlgo.name, data);
       let fullResponseText = '';

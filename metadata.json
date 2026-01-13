@@ -1,0 +1,5 @@
+{
+  "name": "AlgoVisual",
+  "description": "A minimalist and powerful Data Structures and Algorithms visualizer built with React and D3.js, featuring real-time AI-powered complexity analysis.",
+  "requestFramePermissions": []
+}

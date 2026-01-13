@@ -5,13 +5,17 @@ import remarkGfm from 'remark-gfm';
 import { ALGORITHMS, COLORS } from './constants.ts';
 import { Algorithm, NodeData, AlgorithmCategory, ViewState } from './types.ts';
 import { Visualizer } from './components/Visualizer.tsx';
+import { LeetCodeVisualizer } from './components/LeetCodeVisualizer.tsx';
 import { Sidebar } from './components/Sidebar.tsx';
 import { HomePage } from './components/HomePage.tsx';
 import { AboutPage } from './components/AboutPage.tsx';
+import { LeetCodePage } from './components/LeetCodePage.tsx';
+import { OnlineCompiler } from './components/OnlineCompiler.tsx';
+import { LeetCodeProblem } from './leetcodeData.ts';
 import { getAlgorithmDeepDive, chatWithAIStream, AIError } from './services/geminiService.ts';
 import { ALGO_REGISTRY } from './algorithms/registry.ts';
-import { GenerateContentResponse } from "@google/genai";
 import { Snackbar, SnackbarType } from './components/Snackbar.tsx';
+import { ErrorBoundary } from './components/ErrorBoundary.tsx';
 
 interface ChatMessage {
   role: 'user' | 'model';
@@ -82,6 +86,7 @@ const MarkdownRenderer = ({ content }: { content: string }) => {
 export const App: React.FC = () => {
   const [view, setView] = useState<ViewState>('home');
   const [selectedAlgo, setSelectedAlgo] = useState<Algorithm>(ALGORITHMS[0]);
+  const [selectedLeetCodeProblem, setSelectedLeetCodeProblem] = useState<LeetCodeProblem | null>(null);
   const [data, setData] = useState<NodeData[]>([]);
   const [isAnimating, setIsAnimating] = useState(false);
   const isCancelledRef = useRef<boolean>(false);
@@ -181,6 +186,26 @@ export const App: React.FC = () => {
         value: char,
         color: COLORS.DEFAULT
       }));
+    } else if (cat === AlgorithmCategory.TREES) {
+      const treeValues = [50, 30, 70, 20, 40, 60, 80];
+      initialData = treeValues.map((v, i) => ({
+        id: i,
+        value: v,
+        color: COLORS.DEFAULT,
+        neighbors: []
+      }));
+
+      // Build binary tree structure: parent at index i has children at 2i+1 and 2i+2
+      for (let i = 0; i < initialData.length; i++) {
+        const left = 2 * i + 1;
+        const right = 2 * i + 2;
+        if (left < initialData.length) {
+          initialData[i].neighbors!.push({ id: initialData[left].id });
+        }
+        if (right < initialData.length) {
+          initialData[i].neighbors!.push({ id: initialData[right].id });
+        }
+      }
     } else {
       const count = window.innerWidth < 640 ? 8 : 12;
       const isSorted = id === 'binary-search';
@@ -206,6 +231,15 @@ export const App: React.FC = () => {
       setIsGenerating(false);
     }
   }, [selectedAlgo, resetData, view]);
+
+  useEffect(() => {
+    if (selectedLeetCodeProblem) {
+      resetData();
+      setChatHistory([]);
+      setIsGenerating(false);
+      triggerSnackbar(`Loaded LeetCode problem: ${selectedLeetCodeProblem.title}`, 'info');
+    }
+  }, [selectedLeetCodeProblem]);
 
   const updateStep = (step: string) => {
     setCurrentStep(step);
@@ -238,8 +272,6 @@ export const App: React.FC = () => {
 
     const wrappedSetData = (newData: NodeData[]) => {
       setData(newData);
-      // We don't record every micro-setData for performance unless there's a step change?
-      // Actually, for step-by-step we need to capture these states.
       setHistory(prev => {
         const lastStep = prev.length > 0 ? prev[prev.length - 1].step : 'Processing...';
         return [...prev, { data: JSON.parse(JSON.stringify(newData)), step: lastStep }];
@@ -264,67 +296,108 @@ export const App: React.FC = () => {
           wrappedSetStep('Algorithm completed');
           triggerSnackbar(`${selectedAlgo.name} completed successfully`, 'success');
         }
-      } catch (e) {
-        console.error("Algo execution error:", e);
-        triggerSnackbar(`Error during execution`, 'error');
+      } catch (error) {
+        console.error('Algorithm execution error:', error);
+        isCancelledRef.current = true;
+        setIsAnimating(false);
+        
+        const errorMessage = error instanceof Error 
+          ? error.message 
+          : 'An unknown error occurred during algorithm execution';
+        
+        wrappedSetStep(`Error: ${errorMessage}`);
+        triggerSnackbar(`${selectedAlgo.name} failed: ${errorMessage}`, 'error');
+        
+        setStepHistory(prev => [...prev, `Error: ${errorMessage}`]);
+      } finally {
+        if (!isCancelledRef.current) {
+          setIsAnimating(false);
+        }
       }
     } else {
-      triggerSnackbar("Algorithm runner not found", 'error');
+      triggerSnackbar(`Algorithm '${selectedAlgo.id}' not found`, 'error');
     }
-    setIsAnimating(false);
   };
 
   const stopAnimation = () => {
+    if (!isAnimating) return;
     isCancelledRef.current = true;
     setIsAnimating(false);
     triggerSnackbar(`${selectedAlgo.name} stopped`, 'info');
   };
 
   const handleCustomData = (input: any) => {
-    const cat = selectedAlgo.category;
-    const id = selectedAlgo.id;
-    let customData: NodeData[] = [];
+    try {
+      const cat = selectedAlgo.category;
+      const id = selectedAlgo.id;
+      let customData: NodeData[] = [];
 
-    if (cat === AlgorithmCategory.STRINGS) {
-      const text = String(input);
-      customData = text.split('').map((char, i) => ({
-        id: i,
-        value: char,
-        color: COLORS.DEFAULT
-      }));
-      triggerSnackbar(`Injected string: "${text.substring(0, 10)}..."`, 'success');
-    } else if (cat === AlgorithmCategory.GRAPHS) {
-      const edgesRaw = String(input).split(',').map(s => s.trim());
-      const nodeSet = new Set<string>();
-      const parsedEdges: { from: string, to: string, weight: number }[] = [];
+      // Validate input
+      if (input === null || input === undefined) {
+        throw new Error('Input cannot be null or undefined');
+      }
 
-      edgesRaw.forEach(edgeStr => {
-        const [nodes, weight] = edgeStr.split(':');
-        if (!nodes) return;
-        const [from, to] = nodes.split('-');
-        if (!from || !to) return;
-        nodeSet.add(from);
-        nodeSet.add(to);
-        parsedEdges.push({ from, to, weight: weight ? parseInt(weight) : 1 });
-      });
+      if (cat === AlgorithmCategory.STRINGS) {
+        const text = String(input);
+        if (text.length === 0) {
+          throw new Error('String cannot be empty');
+        }
+        if (text.length > 100) {
+          throw new Error('String too long (max 100 characters)');
+        }
+        customData = text.split('').map((char, i) => ({
+          id: i,
+          value: char,
+          color: COLORS.DEFAULT
+        }));
+        triggerSnackbar(`Injected string: "${text.substring(0, 10)}..."`, 'success');
+      } else if (cat === AlgorithmCategory.GRAPHS) {
+        const edgesRaw = String(input).split(',').map(s => s.trim()).filter(s => s.length > 0);
+        if (edgesRaw.length === 0) {
+          throw new Error('No edges provided. Format: "A-B:1, B-C:2"');
+        }
+        const nodeSet = new Set<string>();
+        const parsedEdges: { from: string, to: string, weight: number }[] = [];
 
-      customData = Array.from(nodeSet).map(val => ({
-        id: val,
-        value: val,
-        color: COLORS.DEFAULT,
-        neighbors: parsedEdges
-          .filter(e => e.from === val)
-          .map(e => ({ id: e.to, weight: e.weight }))
-      }));
-      triggerSnackbar(`Constructed graph with ${customData.length} nodes`, 'success');
-    } else if (cat === AlgorithmCategory.TREES) {
-      const nums = input as number[];
-      customData = nums.map((v, i) => ({
-        id: i,
-        value: v,
-        color: COLORS.DEFAULT,
-        neighbors: []
-      }));
+        edgesRaw.forEach(edgeStr => {
+          const [nodes, weight] = edgeStr.split(':');
+          if (!nodes) return;
+          const [from, to] = nodes.split('-');
+          if (!from || !to) return;
+          nodeSet.add(from);
+          nodeSet.add(to);
+          parsedEdges.push({ from, to, weight: weight ? parseInt(weight) : 1 });
+        });
+
+        if (nodeSet.size === 0) {
+          throw new Error('No valid nodes found in input');
+        }
+
+        customData = Array.from(nodeSet).map(val => ({
+          id: val,
+          value: val,
+          color: COLORS.DEFAULT,
+          neighbors: parsedEdges
+            .filter(e => e.from === val)
+            .map(e => ({ id: e.to, weight: e.weight }))
+        }));
+        triggerSnackbar(`Constructed graph with ${customData.length} nodes`, 'success');
+      } else if (cat === AlgorithmCategory.TREES) {
+        if (!Array.isArray(input)) {
+          throw new Error('Input must be an array for tree algorithms');
+        }
+        if (input.length === 0) {
+          throw new Error('Array cannot be empty');
+        }
+        if (input.length > 31) {
+          throw new Error('Tree too large (max 31 nodes)');
+        }
+        customData = input.map((v, i) => ({
+          id: i,
+          value: v,
+          color: COLORS.DEFAULT,
+          neighbors: []
+        }));
 
       for (let i = 0; i < customData.length; i++) {
         const left = 2 * i + 1;
@@ -332,8 +405,17 @@ export const App: React.FC = () => {
         if (left < customData.length) customData[i].neighbors!.push({ id: customData[left].id });
         if (right < customData.length) customData[i].neighbors!.push({ id: customData[right].id });
       }
-      triggerSnackbar(`Built binary tree from ${nums.length} values`, 'success');
+      triggerSnackbar(`Built binary tree from ${customData.length} values`, 'success');
     } else if (cat === AlgorithmCategory.LINKED_LIST) {
+      if (!Array.isArray(input)) {
+        throw new Error('Input must be an array for linked list algorithms');
+      }
+      if (input.length === 0) {
+        throw new Error('Array cannot be empty');
+      }
+      if (input.length > 20) {
+        throw new Error('Linked list too large (max 20 nodes)');
+      }
       const nums = input as number[];
       customData = nums.map((v, i) => ({
         id: i,
@@ -343,6 +425,15 @@ export const App: React.FC = () => {
       }));
       triggerSnackbar(`Created Linked List with ${nums.length} nodes`, 'success');
     } else {
+      if (!Array.isArray(input)) {
+        throw new Error('Input must be an array');
+      }
+      if (input.length === 0) {
+        throw new Error('Array cannot be empty');
+      }
+      if (input.length > 50) {
+        throw new Error('Array too large (max 50 elements)');
+      }
       const nums = input as number[];
       customData = nums.map((v, i) => ({
         id: i,
@@ -356,6 +447,11 @@ export const App: React.FC = () => {
     setData(customData);
     setHistory([{ data: JSON.parse(JSON.stringify(customData)), step: 'Custom data injected' }]);
     setHistoryIndex(0);
+    } catch (error) {
+      console.error('Custom data error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to process custom data';
+      triggerSnackbar(errorMessage, 'error');
+    }
   };
 
   const handleStepForward = () => {
@@ -384,12 +480,8 @@ export const App: React.FC = () => {
       const stream = await getAlgorithmDeepDive(selectedAlgo.name, data);
       let fullResponseText = '';
       for await (const chunk of stream) {
-        const c = chunk as GenerateContentResponse;
-        const textChunk = c.text;
-        if (textChunk) {
-          fullResponseText += textChunk;
-          setChatHistory([{ role: 'model', text: fullResponseText }]);
-        }
+        fullResponseText += chunk;
+        setChatHistory([{ role: 'model', text: fullResponseText }]);
       }
     } catch (error: any) {
       setAiError(error.message);
@@ -429,16 +521,12 @@ export const App: React.FC = () => {
 
       let fullResponseText = '';
       for await (const chunk of stream) {
-        const c = chunk as GenerateContentResponse;
-        const textChunk = c.text;
-        if (textChunk) {
-          fullResponseText += textChunk;
-          setChatHistory(prev => {
-            const newHistory = [...prev];
-            newHistory[newHistory.length - 1] = { role: 'model', text: fullResponseText };
-            return newHistory;
-          });
-        }
+        fullResponseText += chunk;
+        setChatHistory(prev => {
+          const newHistory = [...prev];
+          newHistory[newHistory.length - 1] = { role: 'model', text: fullResponseText };
+          return newHistory;
+        });
       }
     } catch (error: any) {
       setAiError(error.message);
@@ -453,16 +541,61 @@ export const App: React.FC = () => {
     if (view === 'home' || view === 'about') setView('visual');
   };
 
+  const handleSelectLeetCodeProblem = (problem: LeetCodeProblem) => {
+    setSelectedLeetCodeProblem(problem);
+    const algorithm = ALGORITHMS.find(a => a.id === problem.algorithmId);
+    if (algorithm) {
+      setSelectedAlgo(algorithm);
+      setView('visual');
+    }
+  };
+
   const renderContent = () => {
     switch (view) {
       case 'home':
         return <HomePage onGetStarted={() => setView('visual')} />;
       case 'about':
         return <AboutPage />;
+      case 'leetcode':
+        return <LeetCodePage onSelectProblem={handleSelectLeetCodeProblem} onBack={() => setView('home')} />;
+      case 'compiler':
+        return <OnlineCompiler />;
       default:
         return (
           <div className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm overflow-hidden">
-            <div className="p-6 sm:p-10 border-b border-slate-50">
+            {selectedLeetCodeProblem && (
+              <div className="p-6 sm:p-10 border-b border-slate-50 bg-gradient-to-r from-orange-50 to-yellow-50">
+                <div className="flex flex-col gap-4">
+                  <div className="flex items-center gap-3">
+                    <span className="text-2xl font-black text-orange-400">#{selectedLeetCodeProblem.number}</span>
+                    <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">{selectedLeetCodeProblem.title}</h2>
+                    <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                      selectedLeetCodeProblem.difficulty === 'Easy' ? 'bg-emerald-100 text-emerald-700' :
+                      selectedLeetCodeProblem.difficulty === 'Medium' ? 'bg-amber-100 text-amber-700' :
+                      'bg-red-100 text-red-700'
+                    }`}>
+                      {selectedLeetCodeProblem.difficulty}
+                    </span>
+                  </div>
+                  <p className="text-slate-600 text-sm leading-relaxed font-medium">{selectedLeetCodeProblem.description}</p>
+                  <div className="flex items-center gap-4">
+                    <a
+                      href={selectedLeetCodeProblem.link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded-xl text-xs font-black uppercase tracking-wider hover:bg-orange-700 transition-colors"
+                    >
+                      <i className="fa-solid fa-external-link-alt"></i>
+                      View on LeetCode
+                    </a>
+                    <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                      Algorithm: {selectedAlgo.name}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+            <div className={`p-6 sm:p-10 border-b border-slate-50 ${selectedLeetCodeProblem ? 'pt-4' : ''}`}>
               <div className="flex flex-col gap-3">
                 <div className="flex items-center gap-3">
                   <span className="px-3 py-1 bg-blue-50 text-blue-600 rounded-full text-[10px] font-black uppercase tracking-widest">{selectedAlgo.category}</span>
@@ -477,7 +610,29 @@ export const App: React.FC = () => {
               <button onClick={() => setView('complexity')} className={`px-6 py-5 text-xs font-black uppercase tracking-widest transition-all relative ${view === 'complexity' ? 'text-blue-600' : 'text-slate-400 hover:text-slate-600'}`}>Deep Analysis {view === 'complexity' && <div className="absolute bottom-0 left-0 w-full h-1 bg-blue-600 rounded-t-full shadow-lg shadow-blue-400"></div>}</button>
             </div>
             <div className="p-4 sm:p-10">
-              {view === 'visual' ? (
+              {selectedLeetCodeProblem ? (
+                <LeetCodeVisualizer
+                  data={data}
+                  category={selectedAlgo.category}
+                  algorithm={selectedAlgo}
+                  problemId={selectedLeetCodeProblem.id}
+                  problemNumber={selectedLeetCodeProblem.number}
+                  problemTitle={selectedLeetCodeProblem.title}
+                  difficulty={selectedLeetCodeProblem.difficulty}
+                  onStart={startAnimation}
+                  onStop={stopAnimation}
+                  onReset={resetData}
+                  isAnimating={isAnimating}
+                  speed={speed}
+                  setSpeed={setSpeed}
+                  currentStep={currentStep}
+                  stepHistory={stepHistory}
+                  onStepForward={handleStepForward}
+                  onStepBackward={handleStepBackward}
+                  canStepForward={!isAnimating && historyIndex < history.length - 1}
+                  canStepBackward={!isAnimating && historyIndex > 0}
+                />
+              ) : view === 'visual' ? (
                 <Visualizer
                   data={data}
                   category={selectedAlgo.category}
@@ -566,34 +721,45 @@ export const App: React.FC = () => {
   };
 
   return (
-    <div className="flex h-screen bg-white text-slate-900 overflow-hidden font-sans">
-      <Sidebar 
-        selectedAlgo={selectedAlgo} 
-        setSelectedAlgo={handleSelectAlgo} 
-        isOpen={isSidebarOpen} 
-        setIsOpen={setIsSidebarOpen} 
-        currentView={view}
-        setView={setView}
-      />
-      <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
-        <header className="h-16 flex lg:hidden items-center justify-between px-4 border-b border-slate-100 bg-white z-10 shrink-0">
-          <button onClick={() => setIsSidebarOpen(true)} className="w-10 h-10 flex items-center justify-center text-slate-500 hover:bg-slate-50 rounded-xl transition-all"><i className="fa-solid fa-bars-staggered text-lg"></i></button>
-          <div onClick={() => setView('home')} className="flex items-center gap-2 font-black tracking-tight text-blue-600 italic cursor-pointer">AlgoVisual</div>
-          <div className="w-10"></div>
-        </header>
-        <main className="flex-1 overflow-y-auto bg-slate-50/50">
-          <div className="max-w-5xl mx-auto px-4 py-6 lg:px-10">
-            {renderContent()}
-          </div>
-        </main>
-      </div>
+    <ErrorBoundary onError={(error) => {
+      console.error('Application error:', error);
+      setSnackbar({
+        message: `Application error: ${error.message}`,
+        type: 'error',
+        visible: true
+      });
+    }}>
+      <div className="flex h-screen bg-white text-slate-900 overflow-hidden font-sans">
+        <Sidebar 
+          selectedAlgo={selectedAlgo} 
+          setSelectedAlgo={handleSelectAlgo}
+          selectedLeetCodeProblem={selectedLeetCodeProblem}
+          setSelectedLeetCodeProblem={setSelectedLeetCodeProblem}
+          isOpen={isSidebarOpen} 
+          setIsOpen={setIsSidebarOpen}
+          currentView={view}
+          setView={setView}
+        />
+        <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
+          <header className="h-16 flex lg:hidden items-center justify-between px-4 border-b border-slate-100 bg-white z-10 shrink-0">
+            <button onClick={() => setIsSidebarOpen(true)} className="w-10 h-10 flex items-center justify-center text-slate-500 hover:bg-slate-50 rounded-xl transition-all"><i className="fa-solid fa-bars-staggered text-lg"></i></button>
+            <div onClick={() => setView('home')} className="flex items-center gap-2 font-black tracking-tight text-blue-600 italic cursor-pointer">AlgoVisual</div>
+            <div className="w-10"></div>
+          </header>
+          <main className="flex-1 overflow-y-auto bg-slate-50/50">
+            <div className="max-w-5xl mx-auto px-4 py-6 lg:px-10">
+              {renderContent()}
+            </div>
+          </main>
+        </div>
 
-      <Snackbar 
-        message={snackbar.message} 
-        type={snackbar.type} 
-        isVisible={snackbar.visible} 
-        onClose={() => setSnackbar(prev => ({ ...prev, visible: false }))} 
-      />
-    </div>
+        <Snackbar 
+          message={snackbar.message} 
+          type={snackbar.type} 
+          isVisible={snackbar.visible} 
+          onClose={() => setSnackbar(prev => ({ ...prev, visible: false }))} 
+        />
+      </div>
+    </ErrorBoundary>
   );
 };

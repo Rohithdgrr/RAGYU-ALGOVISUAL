@@ -105,8 +105,69 @@ export const AboutPage: React.FC = () => {
         </div>
       </section>
 
+      {/* Disclaimer Section */}
+      <section className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-[3.5rem] border border-amber-100 p-8 sm:p-16 shadow-sm">
+        <div className="max-w-3xl mx-auto">
+          <div className="flex items-center justify-center gap-3 mb-6">
+            <div className="w-12 h-12 bg-amber-500 rounded-2xl flex items-center justify-center shadow-lg shadow-amber-200">
+              <i className="fa-solid fa-triangle-exclamation text-white text-lg"></i>
+            </div>
+            <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">Important Notice</h2>
+          </div>
+          
+          <div className="bg-white/60 backdrop-blur-sm rounded-[2rem] border border-amber-100 p-6 sm:p-8 mb-6">
+            <p className="text-slate-600 text-base sm:text-lg leading-relaxed font-medium mb-4">
+              <strong className="text-slate-900">This website is not fully perfect for all visualizations.</strong>
+            </p>
+            <p className="text-slate-600 text-base sm:text-lg leading-relaxed font-medium mb-4">
+              As a student project, this visualizer is continuously being improved. While we strive for accuracy and clarity in all algorithm visualizations, some complex data structures and algorithms may have limitations in their visual representation.
+            </p>
+            <ul className="space-y-3 text-slate-600 text-base sm:text-lg leading-relaxed font-medium mb-4">
+              <li className="flex items-start gap-3">
+                <i className="fa-solid fa-circle-info text-amber-500 mt-1 text-sm"></i>
+                <span>Some visualizations may not display perfectly on all screen sizes or devices</span>
+              </li>
+              <li className="flex items-start gap-3">
+                <i className="fa-solid fa-circle-info text-amber-500 mt-1 text-sm"></i>
+                <span>Certain edge cases in algorithms may not be fully captured in the visualization</span>
+              </li>
+              <li className="flex items-start gap-3">
+                <i className="fa-solid fa-circle-info text-amber-500 mt-1 text-sm"></i>
+                <span>Animation speeds and step-by-step explanations may vary across different algorithms</span>
+              </li>
+              <li className="flex items-start gap-3">
+                <i className="fa-solid fa-circle-info text-amber-500 mt-1 text-sm"></i>
+                <span>This is an educational tool and may not cover all possible scenarios or variations</span>
+              </li>
+            </ul>
+            <p className="text-slate-600 text-base sm:text-lg leading-relaxed font-medium">
+              Your feedback is invaluable in helping us improve these visualizations. If you encounter any issues or have suggestions for better visual representations, please use the feedback form below.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap justify-center gap-3">
+            <a
+              href="https://github.com/Rohithdgrr/RAGYU-ALGOVISUAL/issues"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 px-5 py-2.5 bg-slate-900 text-white rounded-full text-[10px] font-black uppercase tracking-widest hover:bg-slate-800 transition-all shadow-lg shadow-slate-200"
+            >
+              <i className="fa-brands fa-github text-xs"></i>
+              Report Issue on GitHub
+            </a>
+            <a
+              href="#feedback"
+              className="inline-flex items-center gap-2 px-5 py-2.5 bg-white border-2 border-slate-200 text-slate-700 rounded-full text-[10px] font-black uppercase tracking-widest hover:bg-slate-50 transition-all"
+            >
+              <i className="fa-solid fa-comment text-xs"></i>
+              Send Feedback
+            </a>
+          </div>
+        </div>
+      </section>
+
       {/* Feedback Section */}
-      <section className="bg-white rounded-[3.5rem] border border-slate-100 p-8 sm:p-16 shadow-sm">
+      <section id="feedback" className="bg-white rounded-[3.5rem] border border-slate-100 p-8 sm:p-16 shadow-sm">
         <div className="max-w-3xl mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-black text-slate-900 tracking-tight mb-4 italic">Real User Feedback</h2>

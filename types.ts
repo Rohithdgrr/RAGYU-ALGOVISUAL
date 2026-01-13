@@ -11,7 +11,9 @@ export enum AlgorithmCategory {
   ADVANCED_DS = 'Advanced Data Structures',
   GEOMETRY = 'Geometry',
   MATHEMATICS = 'Mathematics',
-  GREEDY = 'Greedy'
+  GREEDY = 'Greedy',
+  HASH_TABLE = 'Hash Table',
+  HEAP = 'Heap'
 }
 
 export interface Algorithm {
@@ -25,7 +27,7 @@ export interface Algorithm {
   description: string;
 }
 
-export type ViewState = 'home' | 'visual' | 'complexity' | 'about';
+export type ViewState = 'home' | 'visual' | 'complexity' | 'about' | 'leetcode' | 'compiler';
 
 export interface Neighbor {
   id: number | string;

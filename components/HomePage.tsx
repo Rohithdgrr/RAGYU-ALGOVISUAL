@@ -44,6 +44,13 @@ export const HomePage: React.FC<{ onGetStarted: () => void }> = ({ onGetStarted 
               Explore Algorithms
             </button>
             <button 
+              onClick={() => window.location.hash = 'leetcode'}
+              className="px-12 py-5 bg-gradient-to-r from-orange-500 to-yellow-500 text-white rounded-full text-[11px] font-black uppercase tracking-widest shadow-2xl shadow-orange-100 hover:from-orange-600 hover:to-yellow-600 transition-all hover:scale-105 flex items-center gap-2"
+            >
+              <i className="fa-solid fa-code"></i>
+              LeetCode Problems
+            </button>
+            <button 
               onClick={() => {
                 const faqSection = document.getElementById('faq-section');
                 faqSection?.scrollIntoView({ behavior: 'smooth' });

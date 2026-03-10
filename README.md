@@ -10,7 +10,7 @@
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 <p align="center">
-  <strong>🚀 Live Demo:</strong> <a href="https://ragyu-algovisual.vercel.app">ragyu-algovisual.vercel.app</a>
+  <strong>🚀 Live Demo:</strong> <a href="https://ragyu-algovisual.netlify.app">ragyu-algovisual.netlify.app</a>
 </p>
 
 </div>
@@ -21,7 +21,7 @@
 
 ### 🏠 Homepage & Algorithm Selection
 <div align="center">
-  <img src="screenshots/homepage.png" alt="RAGYU AlgoVisual Homepage" width="800"/>
+  <img src="assets/homepage.png" alt="RAGYU AlgoVisual Homepage" width="800"/>
   <p><em>Clean, modern interface with easy algorithm navigation</em></p>
 </div>
 
@@ -29,8 +29,8 @@
 <div align="center">
   <table>
     <tr>
-      <td><img src="screenshots/sorting-visualizer.png" alt="Sorting Algorithm" width="400"/></td>
-      <td><img src="screenshots/graph-visualizer.png" alt="Graph Algorithm" width="400"/></td>
+      <td><img src="assets/bubble-sort.png" alt="Sorting Algorithm" width="400"/></td>
+      <td><img src="assets/pathfinding.png" alt="Graph Algorithm" width="400"/></td>
     </tr>
     <tr>
       <td align="center"><em>Bubble Sort Visualization</em></td>
@@ -41,19 +41,19 @@
 
 ### 💻 Online Code Compiler
 <div align="center">
-  <img src="screenshots/compiler.png" alt="Online Compiler" width="800"/>
+  <img src="assets/compiler.png" alt="Online Compiler" width="800"/>
   <p><em>Multi-language code editor with real-time execution</em></p>
 </div>
 
 ### 🤖 AI-Powered Insights
 <div align="center">
-  <img src="screenshots/ai-insights.png" alt="AI Insights" width="800"/>
+  <img src="assets/ai-insights.png" alt="AI Insights" width="800"/>
   <p><em>Deep algorithm analysis powered by Google Gemini AI</em></p>
 </div>
 
 ### 👤 About Page
 <div align="center">
-  <img src="screenshots/about.png" alt="About Page" width="800"/>
+  <img src="assets/sorting-visualizer.png" alt="About Page" width="800"/>
 </div>
 
 ---
@@ -145,7 +145,7 @@ The app will be available at `http://localhost:3000`
 - Selection Sort
 - Heap Sort
 
-### 🔍 Searching Algorithms
+### 🔍 Searching Algorithm
 - Binary Search
 - Linear Search
 
@@ -201,7 +201,7 @@ This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) 
 **B.Tech Student** from Warangal, Telangana, India
 
 [![GitHub](https://img.shields.io/badge/GitHub-Rohithdgrr-181717?logo=github)](https://github.com/Rohithdgrr)
-[![Portfolio](https://img.shields.io/badge/Portfolio-Visit-FF7139?logo=firefox)](https://rohit-portfolio.dev)
+[![Portfolio](https://img.shields.io/badge/Portfolio-Visit-FF7139?logo=firefox)](https://rohithdgrr.github.io/Protfolio/)
 
 **⭐ Star this repository if you found it helpful!**
 
